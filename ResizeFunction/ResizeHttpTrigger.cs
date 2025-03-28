@@ -28,7 +28,7 @@ namespace StudentCorreiaLegrand
 
             if (w > 2000 || h > 2000)
             {
-                return new BadRequestObjectResult("Les paramètres 'w' et 'h' doivent être inférieurs à 2000.");
+                return new BadRequestObjectResult("Les paramètres 'w' et 'h' doivent être inférieur ou égal à 2000.");
             }
 
             byte[] targetImageBytes;
