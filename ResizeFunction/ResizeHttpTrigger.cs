@@ -26,6 +26,11 @@ namespace StudentCorreiaLegrand
                 return new BadRequestObjectResult("Les paramètres 'w' et 'h' doivent être des entiers positifs.");
             }
 
+            if (w > 2000 || h > 2000)
+            {
+                return new BadRequestObjectResult("Les paramètres 'w' et 'h' doivent être inférieurs à 2000.");
+            }
+
             byte[] targetImageBytes;
             using (var msInput = new MemoryStream())
             {
