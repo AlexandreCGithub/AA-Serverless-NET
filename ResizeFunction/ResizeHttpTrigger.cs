@@ -31,63 +31,63 @@ namespace StudentCorreiaLegrand
                 return new BadRequestObjectResult("Les paramètres 'w' et 'h' doivent être inférieur ou égal à 2000.");
             }
 
-            if (req.Body == null || req.Body.Length == 0)
+            if (req.Body == null || req.Body.CanRead == false)
             {
                 return new BadRequestObjectResult("Aucune image envoyée.");
             }
 
-        byte[] targetImageBytes;
-        try
-        {
-            using (var msInput = new MemoryStream())
+            byte[] targetImageBytes;
+            try
             {
-                await req.Body.CopyToAsync(msInput);
-                msInput.Position = 0;
-
-                // Optionnel : Vérifier la taille du fichier (Cas 9)
-                const long maxFileSize = 5 * 1024 * 1024; // par exemple, 5 MB
-                if (msInput.Length > maxFileSize)
+                using (var msInput = new MemoryStream())
                 {
-                    return new ObjectResult("La taille de l'image dépasse la limite autorisée.")
-                    {
-                        StatusCode = StatusCodes.Status413PayloadTooLarge
-                    };
-                }
+                    await req.Body.CopyToAsync(msInput);
+                    msInput.Position = 0;
 
-                try
-                {
-                    using (var image = Image.Load(msInput))
+                    // Optionnel : Vérifier la taille du fichier (Cas 9)
+                    const long maxFileSize = 5 * 1024 * 1024; // par exemple, 5 MB
+                    if (msInput.Length > maxFileSize)
                     {
-                        // Redimensionner l'image
-                        image.Mutate(x => x.Resize(w, h));
-
-                        using (var msOutput = new MemoryStream())
+                        return new ObjectResult("La taille de l'image dépasse la limite autorisée.")
                         {
-                            image.SaveAsJpeg(msOutput);
-                            targetImageBytes = msOutput.ToArray();
+                            StatusCode = StatusCodes.Status413PayloadTooLarge
+                        };
+                    }
+
+                    try
+                    {
+                        using (var image = Image.Load(msInput))
+                        {
+                            // Redimensionner l'image
+                            image.Mutate(x => x.Resize(w, h));
+
+                            using (var msOutput = new MemoryStream())
+                            {
+                                image.SaveAsJpeg(msOutput);
+                                targetImageBytes = msOutput.ToArray();
+                            }
                         }
                     }
-                }
-                catch (SixLabors.ImageSharp.UnknownImageFormatException)
-                {
-                    return new BadRequestObjectResult("Le format de l'image n'est pas pris en charge.");
-                }
-                catch (Exception ex)
-                {
-                    log.LogError($"Erreur lors du traitement de l'image: {ex.Message}");
-                    return new BadRequestObjectResult("Erreur lors du traitement de l'image. Assurez-vous que le fichier envoyé est une image valide.");
+                    catch (SixLabors.ImageSharp.UnknownImageFormatException)
+                    {
+                        return new BadRequestObjectResult("Le format de l'image n'est pas pris en charge.");
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogError($"Erreur lors du traitement de l'image: {ex.Message}");
+                        return new BadRequestObjectResult("Erreur lors du traitement de l'image. Assurez-vous que le fichier envoyé est une image valide.");
+                    }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            // Gestion globale des erreurs inattendues (Cas 7)
-            log.LogError($"Erreur interne: {ex.Message}");
-            return new ObjectResult("Une erreur interne est survenue, veuillez réessayer plus tard.")
+            catch (Exception ex)
             {
-                StatusCode = StatusCodes.Status500InternalServerError
-            };
-        }
+                // Gestion globale des erreurs inattendues (Cas 7)
+                log.LogError($"Erreur interne: {ex.Message}");
+                return new ObjectResult("Une erreur interne est survenue, veuillez réessayer plus tard.")
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError
+                };
+            }
             return new FileContentResult(targetImageBytes, "image/jpeg");
         }
     }
