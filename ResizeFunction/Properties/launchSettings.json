@@ -2,7 +2,7 @@
   "profiles": {
     "ResizeFunction": {
       "commandName": "Project",
-      "commandLineArgs": "--port 7249",
+      "commandLineArgs": "--port 7190",
       "launchBrowser": false
     }
   }
