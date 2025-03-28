@@ -1,5 +1,8 @@
 ﻿namespace sample1;
 using Newtonsoft.Json;
+using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Metadata;
@@ -19,73 +22,60 @@ class Program
         Console.WriteLine(json);
 
         // 3. Traitement d'image locale
-        string inputFile = "./chat.jpg";  // Dossier source
-        string outputFile = "./output.jpg"; // Dossier destination
+        string inputFolder = "./images";  // Dossier source
+        string outputFolder = "./outputFolder"; // Dossier destination
+        
+        string[] files = Directory.GetFiles(inputFolder, "*.jpg"); // Liste des fichiers JPG
+        Console.WriteLine($"Nombre d'images trouvées: {files.Length}");
 
-        ProcessImage(inputFile, outputFile);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        Parallel.ForEach(files, file =>
+        {
+            ProcessImage(file, outputFolder);
+        });
+        stopwatch.Stop();
+        
+        Console.WriteLine($"Traitement terminé en {stopwatch.ElapsedMilliseconds} ms");
+
     }
 
-static void ProcessImage(string filePath, string outputFile)
-{
-    try
+    static void ProcessImage(string filePath, string outputFolder)
     {
-        using (Image image = Image.Load(filePath))
+        try
         {
-            image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
-            image.Save(outputFile);
-            Console.WriteLine($"Image sauvegardée: {outputFile}");
-        }
-
-        // Identifier l'image redimensionnée
-        ImageInfo imageInfo = Image.Identify(outputFile);
-        Console.WriteLine($"Width: {imageInfo.Width}");
-        Console.WriteLine($"Height: {imageInfo.Height}");
-
-        using (Image imageM = Image.Load(outputFile))
-        {
-            ImageMetadata metadata = imageM.Metadata;
-            
-            // Extraction des métadonnées JPEG si disponible
-            JpegMetadata jpegData = metadata.GetJpegMetadata();
-            if (jpegData != null)
+            string outputFilePath = Path.Combine(outputFolder, Path.GetFileName(filePath));
+            using (Image image = Image.Load(filePath))
             {
-                Console.WriteLine("JPEG Metadata:");
-                Console.WriteLine($"Quality: {jpegData.Quality}");
+                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
+                image.Save(outputFilePath);
+                Console.WriteLine($"Image sauvegardée: {outputFilePath}");
             }
 
-            // Affichage des métadonnées EXIF si elles existent
-            if (metadata.ExifProfile != null)
+            // Identifier l'image redimensionnée
+            ImageInfo inputImageInfo = Image.Identify(filePath);
+            Console.WriteLine($"Width input: {inputImageInfo.Width}");
+            Console.WriteLine($"Height input: {inputImageInfo.Height}");
+
+            ImageInfo outputImageInfo = Image.Identify(outputFilePath);
+            Console.WriteLine($"Width output: {outputImageInfo.Width}");
+            Console.WriteLine($"Height output: {outputImageInfo.Height}");
+
+            using (Image imageM = Image.Load(outputFilePath))
             {
-                Console.WriteLine("EXIF Metadata:");
-                foreach (var tag in metadata.ExifProfile.Values)
+                ImageMetadata metadata = imageM.Metadata;
+                
+                // Extraction des métadonnées JPEG si disponible
+                JpegMetadata jpegData = metadata.GetJpegMetadata();
+                if (jpegData != null)
                 {
-                    Console.WriteLine($"{tag.Tag}: {tag.GetValue()}");
+                    Console.WriteLine("JPEG Metadata:");
+                    Console.WriteLine($"Quality: {jpegData.Quality}");
                 }
             }
         }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Erreur avec {filePath}: {ex.Message}");
-    }
-}
-}
-
-
-public class Personne
-{
-    public string Nom { get; set; }
-    public int Age { get; set; }
-
-    public Personne(string nom, int age)
-    {
-        Nom = nom;
-        Age = age;
-    }
-
-    public string Hello(bool isLowercase)
-    {
-        string message = $"hello {Nom}, you are {Age}";
-        return isLowercase ? message.ToLower() : message.ToUpper();
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur avec {filePath}: {ex.Message}");
+        }
     }
 }
