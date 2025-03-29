@@ -21,6 +21,11 @@ namespace StudentCorreiaLegrand
             ILogger log)
         {
             // Récupération des paramètres w et h
+            if (!req.Query.ContainsKey("w") || !req.Query.ContainsKey("h"))
+            {
+                return new BadRequestObjectResult("Les paramètres 'w' et 'h' sont requis.");
+            }
+
             if (!int.TryParse(req.Query["w"], out int w) || !int.TryParse(req.Query["h"], out int h) || w <= 0 || h <= 0)
             {
                 return new BadRequestObjectResult("Les paramètres 'w' et 'h' doivent être des entiers positifs.");
@@ -28,21 +33,10 @@ namespace StudentCorreiaLegrand
 
             if (w > 2000 || h > 2000)
             {
-                return new BadRequestObjectResult("Les paramètres 'w' et 'h' doivent être inférieur ou égal à 2000.");
+                return new BadRequestObjectResult("Les paramètres 'w' et 'h' doivent être inférieurs ou égaux à 2000.");
             }
 
             byte[] targetImageBytes;
-            using (var msInput = new MemoryStream())
-            {
-                await req.Body.CopyToAsync(msInput);
-                targetImageBytes = msInput.ToArray();
-            }
-
-            if (targetImageBytes.Length == 0)
-            {
-                return new BadRequestObjectResult("Aucune image envoyée.");
-            }
-
             try
             {
                 using (var msInput = new MemoryStream())
@@ -50,44 +44,40 @@ namespace StudentCorreiaLegrand
                     await req.Body.CopyToAsync(msInput);
                     msInput.Position = 0;
 
-                    // Optionnel : Vérifier la taille du fichier (Cas 9)
-                    const long maxFileSize = 5 * 1024 * 1024; // par exemple, 5 MB
+                    if (msInput.Length == 0)
+                    {
+                        return new BadRequestObjectResult("Aucune image envoyée.");
+                    }
+
+                    // Vérification de la taille de l'image
+                    const long maxFileSize = 5 * 1024 * 1024; // 5 MB
                     if (msInput.Length > maxFileSize)
                     {
-                        return new ObjectResult("La taille de l'image dépasse la limite autorisée.")
+                        return new ObjectResult("La taille de l'image dépasse la limite autorisée de 5 MB.")
                         {
                             StatusCode = StatusCodes.Status413PayloadTooLarge
                         };
                     }
 
-                    try
+                    using (var image = Image.Load(msInput))
                     {
-                        using (var image = Image.Load(msInput))
-                        {
-                            // Redimensionner l'image
-                            image.Mutate(x => x.Resize(w, h));
+                        // Redimensionner l'image
+                        image.Mutate(x => x.Resize(w, h));
 
-                            using (var msOutput = new MemoryStream())
-                            {
-                                image.SaveAsJpeg(msOutput);
-                                targetImageBytes = msOutput.ToArray();
-                            }
+                        using (var msOutput = new MemoryStream())
+                        {
+                            image.SaveAsJpeg(msOutput);
+                            targetImageBytes = msOutput.ToArray();
                         }
-                    }
-                    catch (SixLabors.ImageSharp.UnknownImageFormatException)
-                    {
-                        return new BadRequestObjectResult("Le format de l'image n'est pas pris en charge.");
-                    }
-                    catch (Exception ex)
-                    {
-                        log.LogError($"Erreur lors du traitement de l'image: {ex.Message}");
-                        return new BadRequestObjectResult("Erreur lors du traitement de l'image. Assurez-vous que le fichier envoyé est une image valide.");
                     }
                 }
             }
+            catch (SixLabors.ImageSharp.UnknownImageFormatException)
+            {
+                return new BadRequestObjectResult("Le format de l'image n'est pas pris en charge.");
+            }
             catch (Exception ex)
             {
-                // Gestion globale des erreurs inattendues (Cas 7)
                 log.LogError($"Erreur interne: {ex.Message}");
                 return new ObjectResult("Une erreur interne est survenue, veuillez réessayer plus tard.")
                 {
