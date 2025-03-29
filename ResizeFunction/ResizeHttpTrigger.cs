@@ -23,7 +23,7 @@ namespace StudentCorreiaLegrand
             // Récupération des paramètres w et h
             if (!req.Query.ContainsKey("w") || !req.Query.ContainsKey("h"))
             {
-                return new BadRequestObjectResult("Les paramètres 'w' et 'h' sont requis.");
+                return new BadRequestObjectResult("Erreur : Les paramètres 'w' et 'h' sont requis dans l'URL sous la forme ?w=largeur&h=hauteur.");
             }
 
             if (!int.TryParse(req.Query["w"], out int w) || !int.TryParse(req.Query["h"], out int h) || w <= 0 || h <= 0)
@@ -75,6 +75,10 @@ namespace StudentCorreiaLegrand
             catch (SixLabors.ImageSharp.UnknownImageFormatException)
             {
                 return new BadRequestObjectResult("Le format de l'image n'est pas pris en charge.");
+            }
+            catch (SixLabors.ImageSharp.ImageFormatException)
+            {
+                return new BadRequestObjectResult(new { error = "L'image semble corrompue ou invalide." });
             }
             catch (Exception ex)
             {

@@ -27,15 +27,27 @@ class Program
         
         string[] files = Directory.GetFiles(inputFolder, "*.jpg"); // Liste des fichiers JPG
         Console.WriteLine($"Nombre d'images trouvées: {files.Length}");
+        
+        
+        // Traitement séquentiel des images
+        Stopwatch sequentielStopwatch = Stopwatch.StartNew();
+        foreach (string file in files)
+        {
+            ProcessImage(file, outputFolder);
+        }
+        sequentielStopwatch.Stop();
 
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        Console.WriteLine($"Traitement séquentiel des images terminé en {sequentielStopwatch.ElapsedMilliseconds} ms");
+        
+        // Traitement parallèle des images
+        Stopwatch paralleleStopwatch = Stopwatch.StartNew();
         Parallel.ForEach(files, file =>
         {
             ProcessImage(file, outputFolder);
         });
-        stopwatch.Stop();
+        paralleleStopwatch.Stop();
         
-        Console.WriteLine($"Traitement terminé en {stopwatch.ElapsedMilliseconds} ms");
+        Console.WriteLine($"Traitement parallèle des images terminé en {paralleleStopwatch.ElapsedMilliseconds} ms");
 
     }
 
@@ -48,17 +60,17 @@ class Program
             {
                 image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
                 image.Save(outputFilePath);
-                Console.WriteLine($"Image sauvegardée: {outputFilePath}");
+                //Console.WriteLine($"Image sauvegardée: {outputFilePath}");
             }
 
             // Identifier l'image redimensionnée
             ImageInfo inputImageInfo = Image.Identify(filePath);
-            Console.WriteLine($"Width input: {inputImageInfo.Width}");
-            Console.WriteLine($"Height input: {inputImageInfo.Height}");
+            //Console.WriteLine($"Width input: {inputImageInfo.Width}");
+            //Console.WriteLine($"Height input: {inputImageInfo.Height}");
 
             ImageInfo outputImageInfo = Image.Identify(outputFilePath);
-            Console.WriteLine($"Width output: {outputImageInfo.Width}");
-            Console.WriteLine($"Height output: {outputImageInfo.Height}");
+            //Console.WriteLine($"Width output: {outputImageInfo.Width}");
+            //Console.WriteLine($"Height output: {outputImageInfo.Height}");
 
             using (Image imageM = Image.Load(outputFilePath))
             {
@@ -68,8 +80,8 @@ class Program
                 JpegMetadata jpegData = metadata.GetJpegMetadata();
                 if (jpegData != null)
                 {
-                    Console.WriteLine("JPEG Metadata:");
-                    Console.WriteLine($"Quality: {jpegData.Quality}");
+                    //Console.WriteLine("JPEG Metadata:");
+                    //Console.WriteLine($"Quality: {jpegData.Quality}");
                 }
             }
         }

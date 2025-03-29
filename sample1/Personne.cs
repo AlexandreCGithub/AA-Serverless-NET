@@ -1,18 +1,18 @@
 namespace sample1;
 public class Personne
 {
-    public string Nom { get; set; }
-    public int Age { get; set; }
+    public string nom { get; set; }
+    public int age { get; set; }
 
     public Personne(string nom, int age)
     {
-        Nom = nom;
-        Age = age;
+        this.nom = nom;
+        this.age = age;
     }
 
     public string Hello(bool isLowercase)
     {
-        string message = $"hello {Nom}, you are {Age}";
+        string message = $"hello {nom}, you are {age}";
         return isLowercase ? message.ToLower() : message.ToUpper();
     }
 }
